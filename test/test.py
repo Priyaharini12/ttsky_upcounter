@@ -12,29 +12,38 @@ async def test_project(dut):
     clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
-    # Initialize
+    # Initialize inputs
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
 
-    # Reset
+    # Apply reset
     dut.rst_n.value = 0
 
+    # Hold reset for few cycles
     for _ in range(5):
         await RisingEdge(dut.clk)
 
+    # Release reset
     dut.rst_n.value = 1
 
-    for expected in range(1, 16):
+    # Wait one cycle after reset
+    await RisingEdge(dut.clk)
 
-        await RisingEdge(dut.clk)
+    dut._log.info("Checking counter")
 
-        observed = dut.uo_out.value.integer & 0xF
+    # Verify counting
+    for expected in range(16):
+
+        observed = dut.uo_out.value.to_unsigned() & 0xF
 
         dut._log.info(
             f"Expected={expected} Observed={observed}"
         )
 
-        assert observed == expected
+        assert observed == expected, \
+            f"Expected {expected}, Got {observed}"
+
+        await RisingEdge(dut.clk)
 
     dut._log.info("TEST PASSED")
