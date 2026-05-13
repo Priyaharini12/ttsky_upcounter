@@ -11,7 +11,7 @@ async def test_project(dut):
 
     dut._log.info("Starting Up Counter Test")
 
-    # Create clock: 10 us period
+    # Create clock
     clock = Clock(dut.clk, 10, unit="us")
     cocotb.start_soon(clock.start())
 
@@ -22,16 +22,17 @@ async def test_project(dut):
 
     # Apply reset
     dut.rst_n.value = 0
-
-    # Wait during reset
-    await ClockCycles(dut.clk, 2)
+    await ClockCycles(dut.clk, 5)
 
     # Release reset
     dut.rst_n.value = 1
 
+    # Wait for GL netlist stabilization
+    await ClockCycles(dut.clk, 5)
+
     dut._log.info("Checking counter operation")
 
-    # Counter starts from 1 after first clock edge
+    # Verify counter
     for expected_count in range(1, 17):
 
         await ClockCycles(dut.clk, 1)
