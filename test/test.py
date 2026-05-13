@@ -11,17 +11,19 @@ async def test_project(dut):
 
     dut._log.info("Starting Up Counter Test")
 
-    # Create 10 us clock period
+    # Create clock: 10 us period
     clock = Clock(dut.clk, 10, unit="us")
     cocotb.start_soon(clock.start())
 
-    # Initial values
+    # Initialize inputs
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
 
-    # Apply active-low reset
+    # Apply reset
     dut.rst_n.value = 0
+
+    # Wait during reset
     await ClockCycles(dut.clk, 2)
 
     # Release reset
@@ -29,18 +31,20 @@ async def test_project(dut):
 
     dut._log.info("Checking counter operation")
 
-    # Check counter values
-    for expected_count in range(16):
+    # Counter starts from 1 after first clock edge
+    for expected_count in range(1, 17):
 
         await ClockCycles(dut.clk, 1)
 
         observed = dut.uo_out.value.integer & 0xF
 
+        expected = expected_count % 16
+
         dut._log.info(
-            f"Expected Count = {expected_count}, Observed Count = {observed}"
+            f"Expected Count = {expected}, Observed Count = {observed}"
         )
 
-        assert observed == expected_count, \
-            f"Counter mismatch: Expected {expected_count}, Got {observed}"
+        assert observed == expected, \
+            f"Counter mismatch: Expected {expected}, Got {observed}"
 
     dut._log.info("Up Counter Test Passed")
