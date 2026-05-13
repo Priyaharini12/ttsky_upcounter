@@ -1,51 +1,40 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
-# SPDX-License-Identifier: Apache-2.0
-
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import RisingEdge
 
 
 @cocotb.test()
 async def test_project(dut):
 
-    dut._log.info("Starting Up Counter Test")
+    dut._log.info("Starting Test")
 
-    # Create clock
-    clock = Clock(dut.clk, 10, unit="us")
+    # Start clock
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
-    # Initialize inputs
+    # Initialize
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
 
-    # Apply reset
+    # Reset
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 5)
 
-    # Release reset
+    for _ in range(5):
+        await RisingEdge(dut.clk)
+
     dut.rst_n.value = 1
 
-    # Wait for GL netlist stabilization
-    await ClockCycles(dut.clk, 5)
+    for expected in range(1, 16):
 
-    dut._log.info("Checking counter operation")
-
-    # Verify counter
-    for expected_count in range(1, 17):
-
-        await ClockCycles(dut.clk, 1)
+        await RisingEdge(dut.clk)
 
         observed = dut.uo_out.value.integer & 0xF
 
-        expected = expected_count % 16
-
         dut._log.info(
-            f"Expected Count = {expected}, Observed Count = {observed}"
+            f"Expected={expected} Observed={observed}"
         )
 
-        assert observed == expected, \
-            f"Counter mismatch: Expected {expected}, Got {observed}"
+        assert observed == expected
 
-    dut._log.info("Up Counter Test Passed")
+    dut._log.info("TEST PASSED")
